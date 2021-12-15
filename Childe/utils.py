@@ -10,6 +10,7 @@ from Childe.config import Config
 from hashlib import sha1
 import os
 import pyaudio
+from playsound import playsound
 import wave
 import numpy as np
 import random
@@ -17,11 +18,14 @@ import time
 from collections import defaultdict
 import code
 
+
 sample_width = 2
 THRESHOLD = Config["voice_filter"]["threshold"]
 CHUNK = Config["voice_record"]["frames_per_buffer"]
 RATE = Config["voice_record"]["rate"]
 CHANNELS = Config["voice_record"]["channels"]
+
+p = pyaudio.PyAudio()
 
 def drand(n=32):
     with open("/dev/random", "rb") as f:
@@ -49,9 +53,8 @@ def save_pcm(raw_data, path):
     with open(path, "wb") as f:
         f.write(raw_data)
 
-def save_wav(raw_data, path):
-    np_chunk = np.frombuffer(raw_data, dtype=np.int16)
-    if max(np_chunk) <= THRESHOLD:
+def save_wav(raw_data, path, filt=True):
+    if filt and max(np.frombuffer(raw_data, dtype=np.int16)) <= THRESHOLD:
         return
     wf = wave.open(path, 'wb')
     wf.setnchannels(CHANNELS)
@@ -60,36 +63,15 @@ def save_wav(raw_data, path):
     wf.writeframes(raw_data)
     wf.close()
 
-def save_wav_from_np(np_chunk, path):
-    wf = wave.open(path, 'wb')
-    wf.setnchannels(CHANNELS)
-    wf.setsampwidth(sample_width)
-    wf.setframerate(RATE)
-    wf.writeframes(np_chunk.tobytes())
-    wf.close()
+def wav2raw(path):
+    with open(path, "rb") as f:
+        return f.read()[44:]
 
-
-class APIAccess(object):
-    """docstring for APIAccess"""
-    def __init__(self, config):
-        super(APIAccess, self).__init__()
-        self.config = config
-        self.getToken()
-
-    def getToken(self):
-        r = post(self.config["token_url"], params=self.config["api_key"])
-        r = json.loads(r.text)
-        self.token = r[self.config["token_key"]]
-        self.tokenExpireTime = datetime.utcnow() + timedelta(**self.config["token_duration"])
-        # print(self.token)
-
-    def request(self, data):
-        return post(self.config["api_url"], data=data)
 
 class Recorder(object):
     def __init__(self, save_path="", auto_name=True):
         if not save_path:
-            save_path = os.path.join("..", "resource", "origin_voices")
+            save_path = os.path.join("resource", "origin_voices")
         self.save_path = save_path
         self.auto_name = auto_name
         """
@@ -117,7 +99,7 @@ class VoiceDataEnhancer(object):
     def __init__(self, noise_path=""):
         super(VoiceDataEnhancer, self).__init__()
         if not noise_path:
-            noise_path = os.path.join("..", "resource", "origin_voices", "noise")
+            noise_path = os.path.join("resource", "origin_voices", "noise")
         self.noise_path = noise_path
 
 
@@ -195,12 +177,10 @@ class CNNDataLoader(object):
                 self.counts[label] += count
         print("Sample component ratio:")
         for k, v in self.counts.items():
-            print(k, v/self.total_sample)
+            print(k, v/self.total_sample, f"({v})")
     def __getitem__(self, key):
         return (self.samples[key].astype(np.float32), self.labels[key])
     def __len__(self):
         return self.total_sample
-    def collect_func():
-        raise NotImplementedError
 
 
