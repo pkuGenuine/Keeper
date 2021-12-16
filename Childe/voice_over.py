@@ -1,62 +1,68 @@
 import os
 from Childe.config import Config
+from Childe.utils import save_wav, rand_name
+from Childe.logger import logger
 from playsound import playsound
 from datetime import datetime, timedelta
 
 
 voice_dir = Config["voice_resource_dir"]
+fallback_voice_dir = Config["voice_fallback_dir"]
+
+
+tmp_dir = Config["tmp_dir"]
 
 voice_resource_map = {
     "Morning": "VO Tartaglia Good Morning.wav",
     "Night": "VO Tartaglia Good Night.wav",
-    "After_dinner": "VO Tartaglia Good Evening.wav",
-    "No_picky": "VO Tartaglia Least Favorite Food.wav",
-    "Good_food": "VO Tartaglia Favorite Food.wav",
+    "AfterDinner": "VO Tartaglia Good Evening.wav",
+    "NoPicky": "VO Tartaglia Least Favorite Food.wav",
+    "GoodFood": "VO Tartaglia Favorite Food.wav",
     "Comrade": "Comrade.wav",
     "Urge": "VO_Tartaglia_Joining_Party_03.wav",
     "Birthday": "VO Tartaglia Birthday.wav",
+    "Windy": "VO Tartaglia When It's Windy.wav",
     "Diluc_Needs": "VO Diluc About Us - Needs.wav",
-    "After_dinner": "VO Tartaglia Good Evening.wav",
+    "Diluc_OK": "VO_Diluc_Opening_Treasure_Chest_02.wav",
+    "Albedo_Understood": "VO_Albedo_Joining_Party_01.wav",
 }
 
-class ChildVoiceOver(object):
-    """docstring for ChildVoiceOver"""
-    def __init__(self, voice_dir):
-        super(ChildVoiceOver, self).__init__()
+fallback_voice_resource_map = {
+    "Not_Understand": "Not_Understand.wav",
+    "Error": "Error.wav",
+}
+
+class CharacterVoiceOver(object):
+
+    def __init__(self, voice_dir, resource_map):
+        super(CharacterVoiceOver, self).__init__()
         self.voice_dir = voice_dir
-        self.last_special_day = datetime.now() - timedelta(days=1)
+        self.resource_map = resource_map
 
     def play(self, label):
-        playsound(os.path.join(self.voice_dir, voice_resource_map[label]))
+        # If label not in map, simply raise Error
+        playsound(os.path.join(self.voice_dir, self.resource_map[label]))
 
-    # def special_day_first_time(self, month, day):
-    #     cur_time = datetime.now()
-    #     if cur_time.month != month or cur_time.day != day:
-    #         return False
-    #     if self.last_special_day.month == cur_time.mouth and self.last_special_day.day == cur_time.day:
-    #         return False
-    #     self.last_special_day = cur_time
-    #     return True
 
-    # def greet(self):
-    #     """
-    #     Not take time zone into account yet.
-    #     To be beautified.
-    #     """
-    #     if self.special_day_first_time(5, 8):
-    #         self.play("Birthday")
+class DefaultVoice(CharacterVoiceOver):
 
-    #     now_hour = datetime.now().hour
-    #     if 6 <= now_hour < 11:
-    #         self.play("Morning")
-    #     elif 11 <= now_hour < 17:
-    #         self.play("Comrade")
-    #         self.play("Urge")
-    #     elif 17 <= now_hour < 19:
-    #         self.play("After_dinner")
-    #     else:
-    #         self.play("Comrade")
-    #         self.play("Urge")
+    def __init__(self, voice_dir, tmp_dir, resource_map):
+        super(DefaultVoice, self).__init__(voice_dir=voice_dir, resource_map=resource_map)
+        self.tmp_dir = tmp_dir
 
-voice_over = ChildVoiceOver(voice_dir=voice_dir)
+    def play(self, label):
+        if label not in self.resource_map:
+            logger.log(level="ERROR", message=f"Unsupported voice label {label}.")
+            label = "Error"
+        playsound(os.path.join(self.voice_dir, self.resource_map[label]))
+
+    def play_raw(self, raw_data):
+        tmp_file = os.path.join(self.tmp_dir, rand_name() + ".wav")
+        save_wav(raw_data=raw_data, path=tmp_file, filt=False)
+        playsound(tmp_file)
+        # os.system(f"rm {tmp_file}")
+
+voice_over = CharacterVoiceOver(voice_dir=voice_dir, resource_map=voice_resource_map)
+fallback_voice = DefaultVoice(voice_dir=fallback_voice_dir, tmp_dir=tmp_dir, resource_map=fallback_voice_resource_map)
+
 

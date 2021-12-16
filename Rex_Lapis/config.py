@@ -2,9 +2,6 @@ import json
 import datetime
 import os
 
-
-
-
 # Under development
 # Such a mess by now......
 

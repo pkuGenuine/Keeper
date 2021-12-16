@@ -11,12 +11,18 @@ from Childe.wakeup import WakeUpWord
 from Childe.utils import rand_name, save_wav
 from Childe.config import Config
 from Childe.logger import logger
-from Childe.voice_over import voice_over
+from Childe.voice_over import voice_over, fallback_voice
 
+
+# username & password
 device_name = Config["device"]
 salt = Config["salt"]
+
+# api for wakeup & commands
 wakeup_url = Config["wakeup_url"]
 request_url = Config["request_url"]
+
+# tmp_dir, store tmp files
 tmp_dir = Config["tmp_dir"]
 
 p = pyaudio.PyAudio()
@@ -25,7 +31,6 @@ class ChildeServer(object):
 
     def __init__(self):
         super(ChildeServer, self).__init__()
-        # self.queue = Queue(maxsize=Config["wakeup_queue_size"])
         self.wakeup_window = Config["wakeup_window"]
         self.chunk_size = Config["voice_record"]["frames_per_buffer"]
         self.threshold = Config["voice_filter"]["threshold"]
@@ -75,12 +80,9 @@ class ChildeServer(object):
                             self.command_finished = False
                             self.instream.close()
                             if self.prevs:
-                                raw_response = self.request_Morax(url=request_url, raw_data=self.prevs)
-                                json_response = json.loads(raw_response)
-                                print(json_response["message"])
-
+                                self.request_command()
                                 self.prevs = b""
-                                counter = 3
+                                self.counter = 3
                             else:
                                 self.counter -= 1
                     self.session.close()
@@ -175,25 +177,31 @@ class ChildeServer(object):
         response = self.request_Morax(url=wakeup_url, raw_data=self.prevs, auth=True)
         if not response:
             return False
-        if not response.get("wakeup", False):
+        if not response.get("voice_labels", []):
             file_name = f"{rand_name()}.wav"
-            # logger.log(level="INFO", message=f"Probably misfire detected. {json.loads(raw_response).get('message', '')}")
-            logger.log(level="INFO", message=f"Probably misfire detected. Saving as {file_name}.")
+            logger.log(level="INFO", message=f"Probably misfire detected: ({response.get('message', '')}). Saving as {file_name}.")
             save_wav(x, os.path.join(tmp_dir, file_name), filt=False)
             return False
 
         self.voice_labels = response["voice_labels"]
         return True
 
-    def request_Command(self):
+    def request_command(self):
         raw_response = self.request_Morax(url=request_url, raw_data=self.prevs)
         if not raw_response:
             self.voice_labels = ["Remote_Failure"]
         if type(raw_response) == bytes:
-            pass
-        # dict
-        else:
-            pass
+            fallback_voice.play_raw(raw_response)
+            return
+        if raw_response.get("voice_labels"):
+            for voice_label in raw_response["voice_labels"]:
+                try:
+                    voice_over.play(voice_label)
+                except:
+                    fallback_voice.play(voice_label)
+                    break
+        if raw_response.get("message"):
+            fallback_voice.play()
 
 
 

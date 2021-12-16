@@ -1,6 +1,7 @@
 from Rex_Lapis.config import commands_config
 from Rex_Lapis.skills import skill_map
 from Rex_Lapis.logger import logger
+from Rex_Lapis.utils import voice_api
 from flask import jsonify
 
 class CommandsHandler(object):
@@ -21,9 +22,10 @@ class CommandsHandler(object):
     #   generate voice labels.
 
     # Handler functions should return a tuple:
-    #     status:        "Finishing"/"Pending"/"Error"
-    #     content_type:  "raw"/"text"/"json_string"/"string_list"
-    #     data
+    #     status:        "OK"/"Pending"/"Error"
+    #     content_type:  "text"/"labels"
+    #     data           
+
 
     def __init__(self):
         super(CommandsHandler, self).__init__()
@@ -31,7 +33,7 @@ class CommandsHandler(object):
 
     def is_wakeup(self, text):
 
-        # Should not be commited codes:
+        # Not a good implementation
         if self.expected_wakeup_word.lower() in text.lower() or text.lower() == "Child".lower():
             return True
         return False
@@ -42,51 +44,55 @@ class CommandsHandler(object):
 
         try:
             _, _, voice_labels = skill_map["wakeup_response"]()
-            return jsonify(wakeup=True, voice_labels=voice_labels), 200, {"Content-Type": "application/json"}
+            return jsonify(voice_labels=voice_labels), 200, {"Content-Type": "application/json"}
 
         except:
             logger.log(level="CRITICAL", message="Failed to make response.")
-            return jsonify(wakeup=False, message="Expected Error."), 200, {"Content-Type": "application/json"}
+            return jsonify(message="Unexpected Error."), 200, {"Content-Type": "application/json"}
 
-
-        return jsonify(wakeup=True)
 
     def map2skill(self, text):
 
         # Parsing the text
 
-        skill = ""
-        args = ""
-        return skill, args
+        # Under development, just a demo here
+        text = text.lower()
+        if "how" in text or "what" in text:
+            return "query", {"about": "", "constraints": ""}
+
+        if "which" in text or "choose" in text or "pick up" in text:
+            return "choice", {"about": "", "constraints": ""}
+
+        # if "music" in text or "song" in text:
+        #     return "Music", {}
+
+        if "good night" in text:
+            return "chit_chat", {"labels": ["Night"]}
+
+        return "fallback", {}
 
 
     def execute_commands(self, text):
-        skill, args = map2skill(text)
+        skill, kwargs = self.map2skill(text)
 
         # Dispatch the task
 
         if not skill in skill_map:
-            d = {
-                "status_code": 405,
-                "message"    : "Unsupported skill."
-            }
-            return jsonify(**d), 200, {"Content-Type": "application/json"}
-        if skill_map[skill] is not None:
-            status, content_type, content = skill_map[skill](args)
-        else:
-            logger.log(level="INFO", message=f"Unsupported skill")
-            return jsonify()
+            logger.log(level="CRITICAL", message=f"Unsupported skill {skill}. ( Unexpected )")
+            skill = "error_report"
+            kwargs = {}
 
-        if status == "Finished":
-            status_code = 200
-        elif status == "Pending":
-            status_code = 200
-        elif status == "Error":
-            status_code = 200
-        else:
-            raise NotImplementedError
+        status, content_type, content = skill_map[skill](**kwargs)
 
-        return {"status": "Finished", "message": text}
+        if not content:
+            content_type = "labels"
+            # Use default actions based on status
+            content = ["Diluc_OK"] if status == "OK" else (["Albedo_Understood"] if status == "Pending" else ["Error"])
+
+        response = voice_api.txt2voice(content) if content_type == "text" else jsonify(voice_labels=content)
+        headers = {"Content-Type": voice_api.response_audio_type if content_type == "text" else "application/json"}
+
+        return response, 200, headers
 
 
 commands_handler = CommandsHandler()

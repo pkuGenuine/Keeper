@@ -6,7 +6,6 @@ from flask import jsonify, request
 import json
 
 
-
 # The auth scheme is not that secure but I want to make the system fast at first.
 
 # Use the Authorization header so that the client can send the raw wave data without b64 encoding. 

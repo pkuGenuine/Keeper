@@ -3,6 +3,7 @@ from functools import wraps
 from datetime import datetime, timedelta
 from flask import jsonify
 
+
 class Skill(object):
     
     # Skill
@@ -51,7 +52,7 @@ class Skill(object):
         self.attr_dict.update(d)
 
 @Skill("wakeup_response", attr_dict={"last_special_day": datetime.now() - timedelta(days=1)})
-def wakeup_response(skill):
+def wakeup_response(skill, *args, **kwargs):
     
     def special_day_first_time(skill, month, day):
         cur_time = datetime.now()
@@ -75,12 +76,67 @@ def wakeup_response(skill):
         voice_labels.append("Comrade")
         voice_labels.append("Urge")
     elif 17 <= now_hour < 19:
-        voice_labels.append("After_dinner")
+        voice_labels.append("AfterDinner")
     else:
-        voice_labels.append("Diluc_Needs")
+        voice_labels.append("Comrade")
+        voice_labels.append("Urge")
+        # voice_labels.append("Diluc_Needs")
+    return "OK", "labels", voice_labels
 
-    return "Finished", "string_list", voice_labels
+
+# Under development, just a demo here
+@Skill("entrace_record")
+def entrace_record(skill):
+    return "OK", "labels", ["Albedo_Understood"]
+
+
+
+from multiprocessing import Process
+def f():
+    import time, os
+    import playsound
+    time.sleep(1)
+    dir_path = "/Users/liuzhanpeng/working/Keeper/resource/music"
+    file_name = "test.mp3"
+    playsound(os.path.join(dir_path, file_name))
+    # os.system(f"open {os.path.join(dir_path, file_name)}")
+
+@Skill("Music")
+def music(skill):
+
+    p = Process(target=f)
+    p.start()
+
+    # zombie, no reap here
+    return "OK", "labels", ["Albedo_Understood"]
+
+@Skill("chit_chat")
+def chit_chat(skill, labels):
+    return "OK", "labels", labels
+
+@Skill("query")
+def query(skill, about, constraints):
+    return "OK", "labels", ["Windy"]
+
+@Skill("choice", attr_dict={})
+def choice(skill, about, constraints):
+    return "OK", "text", "I recommand 学一" 
+
+@Skill("fallback")
+def fallback(skill):
+    return "OK", "labels", ["Not_Understand"]
+
+@Skill("error_report")
+def error_report(skill):
+    return "Error", None, None
         
 skill_map = {
     wakeup_response.skill_name: wakeup_response,  
+    chit_chat.skill_name:       chit_chat,
+    query.skill_name:           query,
+    fallback.skill_name:        fallback,
+    error_report.skill_name:    error_report,
+    music.skill_name:           music,
+    entrace_record.skill_name:  entrace_record,
+    choice.skill_name:          choice,
 }

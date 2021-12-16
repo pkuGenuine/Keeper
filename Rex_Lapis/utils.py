@@ -25,11 +25,16 @@ class BaiduVoiceAPI(APIAccess):
         self.v2t_url = self.config["v2t_api_url"]
         self.t2v_url = self.config["t2v_api_url"]
 
+        self.response_audio_type = "audio/pcm;rate=16000"
+
+        # Not configurable yet. Bad practice
+        self.cuid = "b19dcc00798b9b9422bf0e13f147ef7676ab3a18e9efc65e66f0d82aab851c74"
+
     def voice2txt(self, raw_data, language="EN"):
         dev_pid = 1737 if not language or language == "0" or language == "EN" else 1537
         params = {
             "params": {
-                "cuid": "b19dcc00798b9b9422bf0e13f147ef7676ab3a18e9efc65e66f0d82aab851c74",
+                "cuid": self.cuid,
                 "dev_pid": dev_pid,
                 "token": self.token,
             },
@@ -57,10 +62,10 @@ class BaiduVoiceAPI(APIAccess):
             "lan": "zh",
             "cuid": "b19dcc00798b9b9422bf0e13f147ef7676ab3a18e9efc65e66f0d82aab851c74",
             "ctp": 1,
-            "token": self.token,
+            "tok": self.token,
             # 发音人选择, 基础音库：0为度小美，1为度小宇，3为度逍遥，4为度丫丫，
             # 精品音库：5为度小娇，103为度米朵，106为度博文，110为度小童，111为度小萌，默认为度小美 
-            "per": 3,
+            "per": 106,
             # pcm-16k
             "aue": 4,
 
@@ -79,7 +84,7 @@ class BaiduVoiceAPI(APIAccess):
 
         if r.headers["Content-Type"] == "application/json":
             json_response = json.loads(r.text)
-            logger.log(level="ERROR", message=f"T2V API Access failure: {json_response['err_msg']}. ({tex})")
+            logger.log(level="ERROR", message=f"T2V API Access failure: {json_response['err_msg']} ({tex})")
             return b""
         elif r.headers["Content-Type"] == "audio/basic;codec=pcm;rate=16000;channel=1":
             return r.content

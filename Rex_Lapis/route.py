@@ -26,7 +26,6 @@ def wakeup():
     # require auth: True
     # input:        raw bytes
     # output:       json
-    #     wakeup:        True/False
     #     message:       Error msg ( On Failure )
     #     voice_labels:  list of voice labels for "Childe" to play, like ["Greeting"] ( On Success )
 
@@ -39,7 +38,7 @@ def wakeup():
         return commands_handler.make_wakeup_response()
     message = "Not a wakeup word: " + message
     logger.log(level="DEBUG", message=message)
-    return jsonify(wakeup=False, message=message), 200, {"Content-Type": "application/json"}
+    return jsonify(message=message), 200, {"Content-Type": "application/json"}
 
 
 @Morax.route('/commands', methods=["Post"])
@@ -47,6 +46,8 @@ def commands():
 
     # After been awaken, "Childe" will send audios ( commands ) to with this API.
     # Should return quickly. If the commands can not be done in a jiffy, do it in an async manner.
+    # It simply returns raw_voice or voice_labels for "Childe" to response.
+
     # Use remote API to convert the audio into text, and use the commands module to handle texts.
     # Basically it will return raw pcm voice ( 
     #   synthesized with baidu'api ) for "Childe" to play.
@@ -57,22 +58,16 @@ def commands():
     # input:        raw bytes
     # output:       json/raw_bytes ( depends on "Content-Type" response header )
     #   ( If Content-Type is json )
-    #     status_code:   -1/0/1/... (error/ok/pending)
-    #     voice_labels
-    #     message:       Additional message.
-
-    # Under development
+    #     voice_labels   ( On Success )
+    #     message        ( On Failure )
 
     if not session.get("wakeup", False):
         return jsonify(message=f"Unauthorized."), 401, {"Content-Type": "application/json"}
 
-    response = voice_api.txt2voice("Failed to understand the command.")
-    if not response:
-        pass
-
-    commands = "\n".join(response)
-    logger.log(level="DEBUG", message="Analyzing:" + commands)
-    return commands_handler.execute_commands(commands)
+    response = voice_api.voice2txt(raw_data=request.data)
+    command = "\n".join(response)
+    logger.log(level="DEBUG", message="Analyzing:" + command)
+    return commands_handler.execute_commands(command)
 
 
 @Morax.route("/device_register", methods=["Post"])

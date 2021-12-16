@@ -1,6 +1,3 @@
-"""
-Childe, the audio frontend.
-"""
 import sys, os
 from . import server
 from . import config

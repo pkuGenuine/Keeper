@@ -33,7 +33,8 @@ Config = {
 
     "tmp_dir": "/Users/liuzhanpeng/working/Keeper/tmp",
 
-    "voice_resource_dir": "/Users/liuzhanpeng/working/Keeper/resource/output_voices"
+    "voice_resource_dir": "/Users/liuzhanpeng/working/Keeper/resource/output_voices",
+    "voice_fallback_dir": "/Users/liuzhanpeng/working/Keeper/resource/default_voices"
 }
 
 logger_config = {
