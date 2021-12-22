@@ -6,6 +6,11 @@ import os
 import numpy as np
 from transformers import Wav2Vec2Processor, Wav2Vec2Model
 from datasets import load_dataset
+from vosk import Model, KaldiRecognizer, SetLogLevel
+import sys
+import json
+
+from datetime import datetime
 
 
 class WakeUpWordCNNModel(nn.Module):
@@ -53,7 +58,7 @@ class WakeUpWordTransformerModel(nn.Module):
         p_hidden_states = self.relu(self.fc_1(pooled_output))
         return self.relu(self.fc_2(p_hidden_states)) 
 
-class WakeUpWord(object):
+class Legacy_WakeUpWord(object):
     """docstring for WakeUpWord"""
     def __init__(self, input_size=24000, hidden_size=128, model_path="", model_exists=False):
         super(WakeUpWord, self).__init__()
@@ -167,6 +172,53 @@ class WakeUpWord(object):
         if save_model:
             print(f"Saving model")
             torch.save(self.model.state_dict(), os.path.join(self.model_path, "wakeup_model.ckpt"))
+
+
+
+# A small stt model based detector.
+# The problem is only standard or popular words can be used as wake word.
+# But it can run faster than the Legacy model.
+class WakeUpWord(object):
+    """docstring for ClassName"""
+    def __init__(self, wakeup_phrase, model_path):
+        super(WakeUpWord, self).__init__()
+        self.wakeup_words = wakeup_phrase.lower().strip().split()
+        self.phrase_len = len(self.wakeup_words)
+
+        if len(self.wakeup_words) > 3:
+            print("The word of \"wakeup_word\" should be less than 3.")
+            os.exit()
+
+        self.counter = {i: 0 for i in range(self.phrase_len)}
+
+        # TODO replace the hard encoding
+        self.rec = KaldiRecognizer(Model(model_path), 16000)
+        self.rec.SetWords(True)
+
+    def judge(self, raw_data):
+
+        self.rec.Reset()
+        while raw_data:
+            # Not sure if it is configurable
+            self.rec.AcceptWaveform(raw_data[:4000])
+            raw_data = raw_data[4000:]
+        result = json.loads(self.rec.Result())["text"].lower()
+
+        # Take sequence into consideration
+        # A keyword can be remembered for 1 unit of time
+        for i in range(self.phrase_len):
+            word = self.wakeup_words[i]
+            self.counter[i] = 2 if word in result \
+            else (self.counter[i] - 1 if self.counter[i] else 0)
+        #     print(self.counter[i], end=" ")
+        # print("")
+        if not self.counter[0]:
+            return False
+        for i in range(1, self.phrase_len):
+            if self.counter[i] < self.counter[i - 1]:
+                return False
+
+        return True
 
 
 

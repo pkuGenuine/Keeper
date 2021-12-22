@@ -29,16 +29,22 @@ def wakeup():
     #     message:       Error msg ( On Failure )
     #     voice_labels:  list of voice labels for "Childe" to play, like ["Greeting"] ( On Success )
 
-    response = voice_api.voice2txt(raw_data=request.data)
-    message = "\n".join(response)
-    if commands_handler.is_wakeup(message):
-        session["wakeup"] = True
-        message = "Wakeup Words detect: " + message
-        logger.log(level="DEBUG", message=message)
-        return commands_handler.make_wakeup_response()
-    message = "Not a wakeup word: " + message
-    logger.log(level="DEBUG", message=message)
-    return jsonify(message=message), 200, {"Content-Type": "application/json"}
+    # response = voice_api.voice2txt(raw_data=request.data)
+    # message = "\n".join(response)
+    # if commands_handler.is_wakeup(message):
+    #     session["wakeup"] = True
+    #     message = "Wakeup Words detect: " + message
+    #     logger.log(level="DEBUG", message=message)
+    #     return commands_handler.make_wakeup_response()
+    # message = "Not a wakeup word: " + message
+    # logger.log(level="DEBUG", message=message)
+    # return jsonify(message=message), 200, {"Content-Type": "application/json"}
+
+    # Keep the data. 
+    # Do speecher identification later.
+    raw_data = request.data
+    session["wakeup"] = True
+    return commands_handler.make_wakeup_response()
 
 
 @Morax.route('/commands', methods=["Post"])

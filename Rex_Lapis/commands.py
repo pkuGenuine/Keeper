@@ -57,19 +57,29 @@ class CommandsHandler(object):
 
         # Under development, just a demo here
         text = text.lower()
+
+        skill, kwargs = "fallback", {}
+
         if "how" in text or "what" in text:
-            return "query", {"about": "", "constraints": ""}
+            skill = "query"
+            if whether in text:
+                kwargs = {"about": "whether", "constraints": ["tomorrow"] if "tomorrow" in text else ["today"]}
 
-        if "which" in text or "choose" in text or "pick up" in text:
-            return "choice", {"about": "", "constraints": ""}
+        elif "which" in text or "choose" in text or "pick up" in text:
+            skill = "choise"
+            if "eat" in text or "food" in text or "canteen" in text or "dinner" in text:
+                kwargs = {"about": "food", "constraints": ["campus"]}
 
-        # if "music" in text or "song" in text:
-        #     return "Music", {}
+        elif "register" in text and "entry" in text:
+            skill, kwargs = "campus_entry", {}
 
-        if "good night" in text:
-            return "chit_chat", {"labels": ["Night"]}
+        elif "good night" in text:
+            skill, kwargs = "chit_chat", {"labels": ["Night"]}
 
-        return "fallback", {}
+        elif "music" in text:
+            skill, kwargs = "Music", {}
+
+        return skill, kwargs
 
 
     def execute_commands(self, text):
@@ -94,6 +104,11 @@ class CommandsHandler(object):
 
         return response, 200, headers
 
+    # Better in this arch. But is not useful in latter framework
+    # def register_skill(self, command_parser, skill_func):
+    #     skill_name = skill_func.skill_name
+    #     self.skill_map[skill_name] = skill_func
+    #     self.parser_map[skill_name] = command_parser
 
 commands_handler = CommandsHandler()
         

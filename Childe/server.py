@@ -22,6 +22,11 @@ salt = Config["salt"]
 wakeup_url = Config["wakeup_url"]
 request_url = Config["request_url"]
 
+wakeup_word = Config["wakeup_word"]
+# wakeup_model path
+model_path = Config["model_path"]
+
+
 # tmp_dir, store tmp files
 tmp_dir = Config["tmp_dir"]
 
@@ -35,7 +40,8 @@ class ChildeServer(object):
         self.chunk_size = Config["voice_record"]["frames_per_buffer"]
         self.threshold = Config["voice_filter"]["threshold"]
         self.prevs = b"\x00" * self.wakeup_window
-        self.wakeup_model = WakeUpWord(model_exists=True)
+        # self.wakeup_model = WakeUpWord(model_exists=True)
+        self.wakeup_model = WakeUpWord(wakeup_word, model_path)
 
         self.condition = threading.Condition()
         self.condition_command = threading.Condition()
@@ -168,9 +174,7 @@ class ChildeServer(object):
 
     def wakeup(self):
         # starttime = datetime.utcnow()
-        x = np.frombuffer(self.prevs, dtype=np.int16)
-        if not self.wakeup_model.predict(x.astype(np.float32)):
-            # print("Start", starttime, "End", datetime.utcnow())
+        if not self.wakeup_model.judge(self.prevs):
             return False
         self.session = requests.Session()
         # Invocation of request_Morax will only return dict when success, otherwise b""
@@ -184,6 +188,7 @@ class ChildeServer(object):
             return False
 
         self.voice_labels = response["voice_labels"]
+        # print("Start", starttime, "End", datetime.utcnow())
         return True
 
     def request_command(self):

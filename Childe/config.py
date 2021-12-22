@@ -34,7 +34,10 @@ Config = {
     "tmp_dir": "/Users/liuzhanpeng/working/Keeper/tmp",
 
     "voice_resource_dir": "/Users/liuzhanpeng/working/Keeper/resource/output_voices",
-    "voice_fallback_dir": "/Users/liuzhanpeng/working/Keeper/resource/default_voices"
+    "voice_fallback_dir": "/Users/liuzhanpeng/working/Keeper/resource/default_voices", 
+
+    "model_path": "/Users/liuzhanpeng/working/Keeper/Childe/model",
+    "wakeup_word": "hey child"
 }
 
 logger_config = {

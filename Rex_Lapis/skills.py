@@ -85,30 +85,23 @@ def wakeup_response(skill, *args, **kwargs):
 
 
 # Under development, just a demo here
-@Skill("entrace_record")
-def entrace_record(skill):
+@Skill("campus_entry")
+def campus_entry(skill):
+    if os.system("cd /Users/liuzhanpeng/working/PKUAutoRecord; python3 main.py") == 0:
+        return "OK", "labels", ["Albedo_Understood"]
+    return "Error", "text", "Sorry, failed to register."
+
+
+@Skill("record")
+def record(skill, about):
+    if about == "campus":
+        pass
     return "OK", "labels", ["Albedo_Understood"]
-
-
-
-from multiprocessing import Process
-def f():
-    import time, os
-    import playsound
-    time.sleep(1)
-    dir_path = "/Users/liuzhanpeng/working/Keeper/resource/music"
-    file_name = "test.mp3"
-    playsound(os.path.join(dir_path, file_name))
-    # os.system(f"open {os.path.join(dir_path, file_name)}")
 
 @Skill("Music")
-def music(skill):
-
-    p = Process(target=f)
-    p.start()
-
-    # zombie, no reap here
-    return "OK", "labels", ["Albedo_Understood"]
+def music(skill, about="", constraints={}):
+    os.system("open /Users/liuzhanpeng/working/Keeper/resource/music/test.mp3")
+    return "OK", None, None
 
 @Skill("chit_chat")
 def chit_chat(skill, labels):
@@ -137,6 +130,7 @@ skill_map = {
     fallback.skill_name:        fallback,
     error_report.skill_name:    error_report,
     music.skill_name:           music,
-    entrace_record.skill_name:  entrace_record,
+    campus_entry.skill_name:    campus_entry,
     choice.skill_name:          choice,
+    music.skill_name:           music,
 }
